@@ -21,7 +21,7 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ messages, input, setInput, isLoading, onSend, isFloating }: ChatInterfaceProps) {
-  const [isExpanded, setIsExpanded] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const handleSend = () => {
     if (input.trim() && input.length > 3 && !isLoading) {
@@ -38,12 +38,12 @@ export function ChatInterface({ messages, input, setInput, isLoading, onSend, is
     >
       <Card 
         className={`
-          ${isFloating && !isExpanded ? "w-16 h-16 overflow-hidden" : ""}
+          ${isFloating && !isExpanded ? "w-24 h-16 overflow-hidden" : ""}
           ${isFloating && isExpanded ? "w-80" : ""}
           dark:border-green-500 border-2 light:bg-white/90 dark:bg-slate-900/80
         `}
       >
-        {isFloating && (
+        {isFloating && isExpanded && (
           <div className="absolute top-2 right-2 z-10">
             <Button variant="ghost" size="icon" onClick={() => setIsExpanded(!isExpanded)}>
               {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-2 w-2" />}
