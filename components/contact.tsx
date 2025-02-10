@@ -10,14 +10,14 @@ export function Contact() {
         can contribute to your success.
       </p>
       <div className="flex justify-center gap-6">
-        <Link href="https://linkedin.com" className="text-gray-400 hover:text-white">
-          <Linkedin className="w-6 h-6" />
+      <Link href={`https://github.com/${process.env.GITHUB_USER}`} className="text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-50">
+          <Github className="w-5 h-5" />
         </Link>
-        <Link href="https://github.com" className="text-gray-400 hover:text-white">
-          <Github className="w-6 h-6" />
+        <Link href={`https://linkedin.com/in/${process.env.LINKEDIN_USER}`} className="text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-50">
+          <Linkedin className="w-5 h-5" />
         </Link>
-        <Link href="https://twitter.com" className="text-gray-400 hover:text-white">
-          <Twitter className="w-6 h-6" />
+        <Link href={`https://twitter.com/${process.env.TWITTER_USER}`} className="text-slate-500 hover:text-slate-950 dark:text-slate-400 dark:hover:text-slate-50">
+          <Twitter className="w-5 h-5" />
         </Link>
       </div>
       <div className="mt-8 text-sm text-gray-500">
