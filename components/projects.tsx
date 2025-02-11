@@ -8,6 +8,7 @@ import { useProjects } from "@/contexts/projects-context"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import styled from "styled-components"
+import {cn} from "@/lib/utils"
 
 export function Projects() {
   const { repositories, filter, clearFilter, loading } = useProjects()
@@ -73,18 +74,22 @@ export function Projects() {
                 </div>
               </CardContent>
               <CardFooter className="bg-muted/50 p-4 mt-auto">
-                <div className="flex justify-between w-full">
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={repo.homepage} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Demo
-                    </a>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
-                      <Github className="w-4 h-4" />
-                    </a>
-                  </Button>
+                <div className="flex w-full">
+                  {repo.homepage && 
+                  ( <Button variant="outline" className="mx-2" size="sm" asChild>
+                      <a href={repo.homepage} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Demo
+                      </a>
+                    </Button>
+                  )}
+                  {repo.html_url && 
+                    <Button variant="outline" className="mx-2" size="sm" asChild>
+                      <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
+                        <Github className="w-4 h-4" />
+                      </a>
+                    </Button>
+                  }
                 </div>
               </CardFooter>
             </StyledCard>
