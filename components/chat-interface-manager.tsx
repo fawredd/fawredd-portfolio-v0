@@ -38,9 +38,12 @@ export function ChatInterfaceManager() {
     loadMessages()
   }, [])
   useEffect(() => {
+    console.log("Storing messages start")
     if (messages.length > 1 || messages[0] !== INTRO_MESSAGE) {
+      console.log("Storing messages")
       localStorage.setItem("chatMessages", JSON.stringify(messages))
     }
+    console.log("Storing messages end")
   }, [messages])
 
   useEffect(() => {
@@ -60,10 +63,11 @@ export function ChatInterfaceManager() {
 
   const handleSend = async (message: string) => {
     if (!message.trim() || message.length <= 3 || isLoading) return
-
+    console.log("Sending messages")
     setIsLoading(true)
 
     const newMessages = [...messages, { text: message, type: "user" as const }]
+    console.log("Setting messages from user")
     setMessages(newMessages)
 
     const lowercaseInput = message.toLowerCase()
@@ -104,6 +108,7 @@ export function ChatInterfaceManager() {
         type: "bot",
       })
     }
+    console.log("Setting messages from filter")
     setMessages(newMessages)
   }
 
@@ -141,6 +146,7 @@ export function ChatInterfaceManager() {
         type: "bot",
       })
     }
+    console.log("Setting messages from AI")
     setMessages(newMessages)
   }
 
