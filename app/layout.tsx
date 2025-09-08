@@ -6,11 +6,6 @@ import type React from "react" // Import React
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "Fawredd Developer Portfolio #javascript #nextjs #react #salesforce #apex #ai",
-  description: "A showcase of my projects and skills",
-}
-
 export default function RootLayout({
   children,
 }: {
