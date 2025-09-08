@@ -8,6 +8,7 @@ import { useProjects } from "@/contexts/projects-context"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import styled from "styled-components"
+import Script from "next/script"
 
 export function Projects() {
   const { repositories, filter, clearFilter, loading } = useProjects()
@@ -19,6 +20,27 @@ export function Projects() {
           repo.topics?.some((topic) => topic.toLowerCase() === filter.toLowerCase()),
       )
     : repositories
+  
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "itemListElement": repositories.map((repo, idx) => ({
+      "@type": "SoftwareSourceCode",
+      "position": idx + 1,
+      "name": repo.name,
+      "description": repo.description,
+      "url": repo.html_url,
+      "programmingLanguage": repo.language,
+      "keywords": repo.topics?.join(", "),
+      "codeRepository": repo.html_url,
+      "image": repo.screenshot_url || undefined,
+      "author": {
+        "@type": "Person",
+        "name": "Marcos Moore @fawredd",
+      }
+    }))
+  }  
 
   if (loading) {
     return <ProjectsSkeleton />
@@ -26,6 +48,11 @@ export function Projects() {
 
   return (
     <section className="py-8 min-h-screen">
+      <Script
+        id="projects-ld-json"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="container mx-auto px-4">
         <h2 className="text-2xl font-bold mb-8 flex items-center gap-2">
           Work experience fetched

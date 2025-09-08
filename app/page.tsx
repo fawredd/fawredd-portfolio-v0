@@ -13,7 +13,7 @@ import { getRepositories } from "@/lib/github"
 export async function generateMetadata(): Promise<Metadata> {
   const metaRepositories: Repository[] = await getRepositories()
   // Generate keywords from repository names and topics
-  const repoNames = metaRepositories.map(repo => repo.name)
+  // const repoNames = metaRepositories.map(repo => repo.name)
   const repoTopics = metaRepositories.flatMap(repo => repo.topics || [])
   const keywords = [
     "Marcos Moore",
@@ -41,7 +41,6 @@ export async function generateMetadata(): Promise<Metadata> {
     "mobile apps",
     "open source",
     "github",
-    ...repoNames,
     ...repoTopics,
   ]
     .map(k => k.toLowerCase())
@@ -49,12 +48,12 @@ export async function generateMetadata(): Promise<Metadata> {
     .join(", ")
 
   // Generate a longer description with project names
-  const projectList = repoNames.length
+  /* const projectList = repoNames.length
     ? `Projects featured: ${repoNames.join(", ")}.`
-    : ""
+    : "" */
   const description =
-    "Marcos Moore (@fawredd) developer portfolio, showcasing projects, skills, and expertise in JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, and AI. " +
-    projectList
+    "Marcos Moore (@fawredd) developer portfolio, showcasing projects, skills, and expertise in JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, and AI. " 
+    //projectList
 
   return {
     title:
