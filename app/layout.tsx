@@ -2,7 +2,7 @@ import "@/styles/globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import type React from "react" // Import React
-import { Head } from "next/document"
+import Head  from "next/head"
 
 const inter = Inter({ subsets: ["latin"] })
 
