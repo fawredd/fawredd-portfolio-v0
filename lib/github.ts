@@ -77,9 +77,10 @@ export async function getRepositories(): Promise<Repository[]> {
     }
 
     const repos: Repository[] = await response.json()
-
+    // Sort by first 2 characters of description AND
     // Filter out repositories with "!portfolio" in the description
-    const filteredRepos = repos.filter((repo) => !repo.description?.includes("!portfolio"))
+    const filteredRepos = repos.sort((a, b) => parseInt(b.description.substring(0, 2)) - parseInt(a.description.substring(0, 2)))
+          .filter((repo) => !repo.description?.includes("!portfolio"))
 
     // Fetch screenshot URLs for remaining repositories
     const reposWithScreenshots = await Promise.all(
