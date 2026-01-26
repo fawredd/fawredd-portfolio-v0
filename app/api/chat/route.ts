@@ -1,55 +1,62 @@
+
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { kv } from "@vercel/kv";
 import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
-// 1. Initialize the Rate Limiter (5 requests per 60 seconds)
+// 1. Initialize Redis (Uses your Vercel/Upstash Env Vars)
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+// 2. Create the limiter: Allow 5 requests every 30 seconds
 const ratelimit = new Ratelimit({
-  redis: kv,
-  limiter: Ratelimit.slidingWindow(5, "60 s"),
+  redis: redis,
+  limiter: Ratelimit.slidingWindow(5, "30 s"),
+  analytics: true,
 });
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || "");
 
 export async function POST(req: Request) {
-  // 2. Extract User IP for tracking
-  const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
-  
-  // 3. Check local rate limit BEFORE calling Google
-  const { success, remaining, reset } = await ratelimit.limit(`ratelimit_${ip}`);
-
-  if (!success) {
-    return NextResponse.json(
-      { error: "You are sending messages too fast. Please wait a moment." },
-      { 
-        status: 429, 
-        headers: { "X-RateLimit-Reset": reset.toString() } 
-      }
-    );
-  }
-
   try {
+    // 3. Identify user by IP (works perfectly on Vercel)
+    const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1";
+    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+
+    // 4. Block if they are over the limit
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait a moment." },
+        { 
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          }
+        }
+      );
+    }
+
+    // 5. Normal Gemini Logic
     const { message } = await req.json();
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
     const cvContext = process.env.GEMINI_API_TEXT || "Imagine you are me. I'm a software developer. You will answer short questions about my self."
     const prompt = `${cvContext}\n\nUser: ${message}\nAI:`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const text = (await result.response).text();
 
     return NextResponse.json({ reply: text });
 
   } catch (error: any) {
-    // 4. Handle Google's own 429 gracefully
-    if (error.status === 429 || error.message?.includes("429")) {
-      return NextResponse.json(
-        { error: "AI is currently overloaded. Try again in 30 seconds." },
-        { status: 429 }
-      );
+    // Handle Google's internal 429 error
+    if (error.status === 429) {
+      return NextResponse.json({ error: "AI Busy" }, { status: 429 });
     }
-
-    console.error("Gemini Error:", error);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Error" }, { status: 500 });
   }
 }
