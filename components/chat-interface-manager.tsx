@@ -141,7 +141,7 @@ export function ChatInterfaceManager() {
         const data = await response.json()
         newMessages.push({ text: data.reply, type: 'bot' })
       }
-    } catch {
+    } catch (error) {
       //console.error("Error getting AI response:", error)
       newMessages.push({
         text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
