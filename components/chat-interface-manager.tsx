@@ -142,7 +142,7 @@ export function ChatInterfaceManager() {
         newMessages.push({ text: data.reply, type: 'bot' })
       }
     } catch (error) {
-      //console.error("Error getting AI response:", error)
+      console.error("Error getting AI response:", error)
       newMessages.push({
         text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
         type: 'bot',
