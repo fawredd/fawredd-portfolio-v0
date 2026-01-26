@@ -91,6 +91,7 @@ export async function getRepositories(): Promise<Repository[]> {
     }
 
     const repos: Repository[] = await response.json()
+    
     // Sort by first 2 characters of description, with null descriptions at the end
     const sortedRepos = repos.sort((a, b) => {
       const getSortKey = (desc: string | undefined) => {
@@ -99,19 +100,17 @@ export async function getRepositories(): Promise<Repository[]> {
         if (/^\d{2}/.test(firstTwo)) return { type: 'number', value: parseInt(firstTwo) }
         return { type: 'letter', value: firstTwo.toLowerCase() }
       }
-
       const keyA = getSortKey(a.description)
       const keyB = getSortKey(b.description)
-
       if (keyA.type !== keyB.type) {
         const typeOrder: Record<string, number> = { number: 0, letter: 1, null: 2 }
         return typeOrder[keyA.type] - typeOrder[keyB.type]
       }
-
       if (keyA.type === 'number') return (keyA.value as number) - (keyB.value as number)
       if (keyA.type === 'letter') return (keyA.value as string).localeCompare(keyB.value as string)
       return 0
     })
+
     // Filter out repositories with "!portfolio" in the description
     const filteredRepos = sortedRepos.filter(repo => !repo.description?.includes('!portfolio'))
 
