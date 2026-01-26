@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Ratelimit } from "@upstash/ratelimit";
@@ -6,8 +5,8 @@ import { Redis } from "@upstash/redis";
 
 // 1. Initialize Redis (Uses your Vercel/Upstash Env Vars)
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
 });
 
 // 2. Create the limiter: Allow 5 requests every 30 seconds
@@ -52,9 +51,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ reply: text });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    // Log the error for debugging
+    console.error("API Error:", error);
+
     // Handle Google's internal 429 error
-    if (error.status === 429) {
+    if (error instanceof Error && 'status' in error && error.status === 429) {
       return NextResponse.json({ error: "AI Busy" }, { status: 429 });
     }
     return NextResponse.json({ error: "Error" }, { status: 500 });
