@@ -37,13 +37,17 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Normal AI Logic
-    const { message } = await req.json()
+    const body = await req.json()
+    let sanitizedMessage = typeof body.message === 'string' ? body.message.trim() : ''
+    sanitizedMessage = sanitizedMessage.slice(0, 500)
+
+    if (!sanitizedMessage) {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+    }
 
     const cvContext =
       process.env.GEMINI_API_TEXT ||
       "Imagine you are me. I'm a software developer. You will answer short questions about my self."
-
-    const prompt = `Context:${cvContext}\nUser question: ${message}\n`
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -54,8 +58,11 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tngtech/deepseek-r1t2-chimera:free',
-        prompt: prompt,
+        model: 'google/gemma-3-27b-it:free',
+        messages: [
+          { role: 'system', content: cvContext },
+          { role: 'user', content: sanitizedMessage }
+        ],
         per_request_limits: {
           max_output_tokens: 100,
         },
@@ -66,7 +73,7 @@ export async function POST(req: NextRequest) {
     }
     const data = await response.json()
     console.log('AI API response data:', JSON.stringify(data))
-    const AIreply = data.choices[0].text
+    const AIreply = data.choices[0].message.content
 
     return NextResponse.json({ reply: AIreply })
   } catch (error: unknown) {
