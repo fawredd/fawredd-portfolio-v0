@@ -63,9 +63,7 @@ export async function POST(req: NextRequest) {
           { role: 'system', content: cvContext },
           { role: 'user', content: sanitizedMessage }
         ],
-        per_request_limits: {
-          max_output_tokens: 100,
-        },
+        max_tokens: 200,
       }),
     })
     if (!response.ok) {
