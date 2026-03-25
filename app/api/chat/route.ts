@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemma-3-27b-it:free',
+        model: 'openrouter/free',
         messages: [
           { role: 'system', content: cvContext },
           { role: 'user', content: sanitizedMessage }
