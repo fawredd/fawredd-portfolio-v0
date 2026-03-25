@@ -99,7 +99,6 @@ export async function POST(req: NextRequest) {
           if (done) { reading = false; break }
 
           const chunk = decoder.decode(value, { stream: true })
-          console.log("AI CHUNK", chunk)
           // Each SSE chunk may contain multiple "data: {...}" lines
           const lines = chunk.split('\n').filter((l) => l.startsWith('data: '))
 
@@ -110,7 +109,6 @@ export async function POST(req: NextRequest) {
               return
             }
             try {
-              console.log("AI DATA", data)
               const parsed = JSON.parse(data)
               const choice = parsed.choices?.[0]
               const delta = choice?.delta
