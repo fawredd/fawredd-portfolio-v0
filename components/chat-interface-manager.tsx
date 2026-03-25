@@ -148,9 +148,10 @@ export function ChatInterfaceManager() {
       const reader = response.body!.getReader()
       const decoder = new TextDecoder()
 
-      while (true) {
+      let reading = true
+      while (reading) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) { reading = false; break }
         const token = decoder.decode(value, { stream: true })
         newMessages[botMessageIndex] = {
           ...newMessages[botMessageIndex],

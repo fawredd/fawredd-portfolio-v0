@@ -88,9 +88,10 @@ export async function POST(req: NextRequest) {
     async start(controller) {
       const reader = openRouterRes.body!.getReader()
       try {
-        while (true) {
+        let reading = true
+        while (reading) {
           const { done, value } = await reader.read()
-          if (done) break
+          if (done) { reading = false; break }
 
           const chunk = decoder.decode(value, { stream: true })
           // Each SSE chunk may contain multiple "data: {...}" lines
