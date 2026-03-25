@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
+export const runtime = 'edge'
+
 // 1. Initialize Redis
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
@@ -105,7 +107,11 @@ export async function POST(req: NextRequest) {
             }
             try {
               const parsed = JSON.parse(data)
-              const token = parsed.choices?.[0]?.delta?.content
+              // Streaming models use delta.content; some use message.content as fallback
+              const token =
+                parsed.choices?.[0]?.delta?.content ??
+                parsed.choices?.[0]?.message?.content ??
+                null
               if (token) {
                 controller.enqueue(encoder.encode(token))
               }
