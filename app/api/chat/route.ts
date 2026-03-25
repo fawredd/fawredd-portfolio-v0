@@ -61,11 +61,14 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: 'openrouter/free',
       stream: true,
+      reasoning: { effort: "low" },
+      temperature: 0.7,
+      top_p: 0.9,
       messages: [
         { role: 'system', content: cvContext },
         { role: 'user', content: sanitizedMessage },
       ],
-      max_tokens: 200,
+      max_tokens: 1000,
     }),
   })
 
@@ -96,6 +99,7 @@ export async function POST(req: NextRequest) {
           if (done) { reading = false; break }
 
           const chunk = decoder.decode(value, { stream: true })
+          console.log("AI CHUNK", chunk)
           // Each SSE chunk may contain multiple "data: {...}" lines
           const lines = chunk.split('\n').filter((l) => l.startsWith('data: '))
 
@@ -106,11 +110,15 @@ export async function POST(req: NextRequest) {
               return
             }
             try {
+              console.log("AI DATA", data)
               const parsed = JSON.parse(data)
-              // Streaming models use delta.content; some use message.content as fallback
+              const choice = parsed.choices?.[0]
+              const delta = choice?.delta
+
               const token =
-                parsed.choices?.[0]?.delta?.content ??
-                parsed.choices?.[0]?.message?.content ??
+                delta?.content ??
+                delta?.reasoning ??   // ← NEW (critical)
+                choice?.message?.content ??
                 null
               if (token) {
                 controller.enqueue(encoder.encode(token))
