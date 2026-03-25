@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
-// 1. Initialize Redis (Uses your Vercel/Upstash Env Vars)
+// 1. Initialize Redis
 const redis = new Redis({
   url: process.env.KV_REST_API_URL!,
   token: process.env.KV_REST_API_TOKEN!,
@@ -16,72 +16,116 @@ const ratelimit = new Ratelimit({
 })
 
 export async function POST(req: NextRequest) {
-  try {
-    // 3. Identify user by IP (works perfectly on Vercel)
-    const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
-    const { success, limit, reset, remaining } = await ratelimit.limit(ip)
+  // 3. Rate limit by IP
+  const ip = req.headers.get('x-forwarded-for') ?? '127.0.0.1'
+  const { success, limit, reset, remaining } = await ratelimit.limit(ip)
 
-    // 4. Block if they are over the limit
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please wait a moment.' },
-        {
-          status: 429,
-          headers: {
-            'X-RateLimit-Limit': limit.toString(),
-            'X-RateLimit-Remaining': remaining.toString(),
-            'X-RateLimit-Reset': reset.toString(),
-          },
-        }
-      )
-    }
-
-    // 5. Normal AI Logic
-    const body = await req.json()
-    let sanitizedMessage = typeof body.message === 'string' ? body.message.trim() : ''
-    sanitizedMessage = sanitizedMessage.slice(0, 500)
-
-    if (!sanitizedMessage) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
-    }
-
-    const cvContext =
-      process.env.GEMINI_API_TEXT ||
-      "Imagine you are me. I'm a software developer. You will answer short questions about my self."
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': 'https://fawredd-portfolio.vercel.app', // Optional. Site URL for rankings on openrouter.ai.
-        'X-Title': 'Fawredd portfolio', // Optional. Site title for rankings on openrouter.ai.
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'openrouter/free',
-        messages: [
-          { role: 'system', content: cvContext },
-          { role: 'user', content: sanitizedMessage }
-        ],
-        max_tokens: 200,
-      }),
-    })
-    if (!response.ok) {
-      throw new Error(`AI API error: ${response.statusText}`)
-    }
-    const data = await response.json()
-    console.log('AI API response data:', JSON.stringify(data))
-    const AIreply = data.choices[0].message.content
-
-    return NextResponse.json({ reply: AIreply })
-  } catch (error: unknown) {
-    // Log the error for debugging
-    console.error('API Error:', error)
-
-    // Handle Google's internal 429 error
-    if (error instanceof Error && 'status' in error && error.status === 429) {
-      return NextResponse.json({ error: 'AI Busy' }, { status: 429 })
-    }
-    return NextResponse.json({ error: 'Error' }, { status: 500 })
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please wait a moment.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString(),
+        },
+      }
+    )
   }
+
+  // 4. Parse and validate the message
+  const body = await req.json()
+  let sanitizedMessage = typeof body.message === 'string' ? body.message.trim() : ''
+  sanitizedMessage = sanitizedMessage.slice(0, 500)
+
+  if (!sanitizedMessage) {
+    return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+  }
+
+  const cvContext =
+    process.env.GEMINI_API_TEXT ||
+    "Imagine you are me. I'm a software developer. You will answer short questions about my self."
+
+  // 5. Call OpenRouter with stream: true
+  const openRouterRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      'HTTP-Referer': 'https://fawredd-portfolio.vercel.app',
+      'X-Title': 'Fawredd portfolio',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'openrouter/free',
+      stream: true,
+      messages: [
+        { role: 'system', content: cvContext },
+        { role: 'user', content: sanitizedMessage },
+      ],
+      max_tokens: 200,
+    }),
+  })
+
+  if (openRouterRes.status === 429) {
+    return NextResponse.json(
+      { error: 'AI is busy right now. Please try again in a moment.' },
+      { status: 429 }
+    )
+  }
+
+  if (!openRouterRes.ok || !openRouterRes.body) {
+    const errorText = await openRouterRes.text()
+    console.error('OpenRouter error:', openRouterRes.status, errorText)
+    return NextResponse.json({ error: 'AI error. Please try again.' }, { status: 500 })
+  }
+
+  // 6. Pipe OpenRouter's SSE stream → client as plain text chunks
+  const encoder = new TextEncoder()
+  const decoder = new TextDecoder()
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = openRouterRes.body!.getReader()
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          const chunk = decoder.decode(value, { stream: true })
+          // Each SSE chunk may contain multiple "data: {...}" lines
+          const lines = chunk.split('\n').filter((l) => l.startsWith('data: '))
+
+          for (const line of lines) {
+            const data = line.slice(6).trim()
+            if (data === '[DONE]') {
+              controller.close()
+              return
+            }
+            try {
+              const parsed = JSON.parse(data)
+              const token = parsed.choices?.[0]?.delta?.content
+              if (token) {
+                controller.enqueue(encoder.encode(token))
+              }
+            } catch {
+              // skip malformed SSE lines
+            }
+          }
+        }
+      } catch (err) {
+        controller.error(err)
+      } finally {
+        reader.releaseLock()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
+      'Transfer-Encoding': 'chunked',
+    },
+  })
 }

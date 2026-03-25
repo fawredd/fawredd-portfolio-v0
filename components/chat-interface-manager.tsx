@@ -125,31 +125,48 @@ export function ChatInterfaceManager() {
           text: "I've cleared the filter. Now showing all projects.",
           type: 'bot',
         })
-      } else {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message: userInput }),
-        })
+        setMessages([...newMessages])
+        return
+      }
 
-        if (!response.ok) {
-          throw new Error('Failed to get AI response')
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userInput }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to get AI response')
+      }
+
+      // Add an empty bot message that we'll fill token by token
+      const botMessageIndex = newMessages.length
+      newMessages.push({ text: '', type: 'bot' })
+      setMessages([...newMessages])
+
+      const reader = response.body!.getReader()
+      const decoder = new TextDecoder()
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const token = decoder.decode(value, { stream: true })
+        newMessages[botMessageIndex] = {
+          ...newMessages[botMessageIndex],
+          text: newMessages[botMessageIndex].text + token,
         }
-
-        const data = await response.json()
-        newMessages.push({ text: data.reply, type: 'bot' })
+        setMessages([...newMessages])
       }
     } catch (error) {
-      console.error("Error getting AI response:", error)
+      console.error('Error getting AI response:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       newMessages.push({
-        text: "I'm sorry, I encountered an error while processing your request. Please try again later.",
+        text: `I'm sorry, I encountered an error: ${errorMsg}. Please try again later.`,
         type: 'bot',
       })
+      setMessages([...newMessages])
     }
-    console.log('Setting messages from AI')
-    setMessages(newMessages)
   }
 
   return (
