@@ -102,7 +102,10 @@ export async function POST(req: NextRequest) {
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(" "))
-        } catch { }
+        } catch (err) {
+          // stream already closed — ignore
+          console.debug("Heartbeat skipped: stream closed")
+        }
       }, 2000)
       try {
         let reading = true
