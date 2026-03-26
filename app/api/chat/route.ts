@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       let sentAnyToken = false
       let modelUsed = "unknown"
       let finishReason = "unknown"
-      let usage: any = null
+      let usage: { prompt_tokens: number, completion_tokens: number, completion_tokens_details: { reasoning_tokens: number } } | null = null
 
       try {
         let reading = true
