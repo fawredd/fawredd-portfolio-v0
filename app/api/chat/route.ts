@@ -98,7 +98,12 @@ export async function POST(req: NextRequest) {
       let modelUsed = "unknown"
       let finishReason = "unknown"
       let usage: { prompt_tokens: number, completion_tokens: number, completion_tokens_details: { reasoning_tokens: number } } | null = null
-
+      // Send heartbeat every 2 seconds so Vercel doesn't close the stream
+      const heartbeat = setInterval(() => {
+        try {
+          controller.enqueue(encoder.encode(" "))
+        } catch { }
+      }, 2000)
       try {
         let reading = true
         while (reading) {
@@ -165,6 +170,7 @@ export async function POST(req: NextRequest) {
         console.error("AI STREAM ERROR", err)
         controller.error(err)
       } finally {
+        clearInterval(heartbeat)
         if (!sentAnyToken) {
           const fallback = "Sorry — I couldn't generate a reply this time. Please try again."
           controller.enqueue(encoder.encode(fallback))
@@ -178,8 +184,9 @@ export async function POST(req: NextRequest) {
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
       'X-Content-Type-Options': 'nosniff',
-      'Transfer-Encoding': 'chunked',
     },
   })
 }
