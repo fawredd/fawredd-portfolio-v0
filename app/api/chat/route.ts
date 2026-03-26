@@ -92,6 +92,13 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const reader = openRouterRes.body!.getReader()
+      // Logging variables
+      const startedAt = Date.now()
+      let sentAnyToken = false
+      let modelUsed = "unknown"
+      let finishReason = "unknown"
+      let usage: any = null
+
       try {
         let reading = true
         while (reading) {
@@ -105,11 +112,38 @@ export async function POST(req: NextRequest) {
           for (const line of lines) {
             const data = line.slice(6).trim()
             if (data === '[DONE]') {
+              if (!sentAnyToken) {
+                const fallback =
+                  "Sorry — my answer didn’t come through. Could you try asking again?"
+                controller.enqueue(encoder.encode(fallback))
+              }
+              const latency = Date.now() - startedAt
+
+              console.log("AI SUMMARY", {
+                model: modelUsed,
+                latency_ms: latency,
+                prompt_tokens: usage?.prompt_tokens ?? null,
+                completion_tokens: usage?.completion_tokens ?? null,
+                reasoning_tokens: usage?.completion_tokens_details?.reasoning_tokens ?? null,
+                finish_reason: finishReason,
+                sent_visible_tokens: sentAnyToken,
+                fallback_used: !sentAnyToken,
+              })
+
               controller.close()
               return
             }
             try {
               const parsed = JSON.parse(data)
+              
+              modelUsed = parsed.model ?? modelUsed
+              if (parsed.choices?.[0]?.finish_reason) {
+                finishReason = parsed.choices[0].finish_reason
+              }
+              if (parsed.usage) {
+                usage = parsed.usage
+              }
+
               const choice = parsed.choices?.[0]
               const delta = choice?.delta
 
@@ -119,6 +153,7 @@ export async function POST(req: NextRequest) {
                 choice?.message?.content ??
                 null
               if (token) {
+                sentAnyToken = true
                 controller.enqueue(encoder.encode(token))
               }
             } catch {
@@ -127,8 +162,14 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (err) {
+        console.error("AI STREAM ERROR", err)
         controller.error(err)
       } finally {
+        if (!sentAnyToken) {
+          const fallback = "Sorry — I couldn't generate a reply this time. Please try again."
+          controller.enqueue(encoder.encode(fallback))
+          console.warn("AI EMPTY COMPLETION")
+        }
         reader.releaseLock()
       }
     },
