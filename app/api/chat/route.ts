@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
           controller.enqueue(encoder.encode(" "))
         } catch (err) {
           // stream already closed — ignore
-          console.debug("Heartbeat skipped: stream closed")
+          console.debug("Heartbeat skipped: stream closed",err)
         }
       }, 2000)
       try {
