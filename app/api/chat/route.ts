@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       model: 'openrouter/free',
       stream: true,
-      reasoning: { effort: "low" },
+      reasoning: { effort: 'low' },
       temperature: 0.7,
       top_p: 0.9,
       messages: [
@@ -95,89 +95,107 @@ export async function POST(req: NextRequest) {
       // Logging variables
       const startedAt = Date.now()
       let sentAnyToken = false
-      let modelUsed = "unknown"
-      let finishReason = "unknown"
-      let usage: { prompt_tokens: number, completion_tokens: number, completion_tokens_details: { reasoning_tokens: number } } | null = null
+      let modelUsed = 'unknown'
+      let finishReason = 'unknown'
+      let usage: {
+        prompt_tokens: number
+        completion_tokens: number
+        completion_tokens_details: { reasoning_tokens: number }
+      } | null = null
       // Send heartbeat every 2 seconds so Vercel doesn't close the stream
       const heartbeat = setInterval(() => {
         try {
-          controller.enqueue(encoder.encode(" "))
+          controller.enqueue(encoder.encode(' '))
         } catch (err) {
           // stream already closed — ignore
-          console.debug("Heartbeat skipped: stream closed",err)
+          console.debug('Heartbeat skipped: stream closed', err)
         }
       }, 2000)
       try {
         let reading = true
+        let sseBuffer = ''
+
+        const processSseLine = (line: string) => {
+          if (!line.startsWith('data: ')) return false
+          const data = line.slice(6).trim()
+
+          if (data === '[DONE]') {
+            if (!sentAnyToken) {
+              const fallback = 'Sorry — my answer didn’t come through. Could you try asking again?'
+              controller.enqueue(encoder.encode(fallback))
+            }
+            const latency = Date.now() - startedAt
+
+            console.log('AI SUMMARY', {
+              model: modelUsed,
+              latency_ms: latency,
+              prompt_tokens: usage?.prompt_tokens ?? null,
+              completion_tokens: usage?.completion_tokens ?? null,
+              reasoning_tokens: usage?.completion_tokens_details?.reasoning_tokens ?? null,
+              finish_reason: finishReason,
+              sent_visible_tokens: sentAnyToken,
+              fallback_used: !sentAnyToken,
+              usage: JSON.stringify(usage),
+            })
+
+            controller.close()
+            return true
+          }
+
+          try {
+            const parsed = JSON.parse(data)
+            modelUsed = parsed.model ?? modelUsed
+            if (parsed.choices?.[0]?.finish_reason) {
+              finishReason = parsed.choices[0].finish_reason
+            }
+            if (parsed.usage) {
+              usage = parsed.usage
+            }
+
+            const choice = parsed.choices?.[0]
+            const delta = choice?.delta
+
+            const token = delta?.content ?? delta?.reasoning ?? choice?.message?.content ?? null
+            if (token) {
+              sentAnyToken = true
+              controller.enqueue(encoder.encode(token))
+            }
+          } catch {
+            // skip malformed SSE lines
+          }
+
+          return false
+        }
+
         while (reading) {
           const { done, value } = await reader.read()
-          if (done) { reading = false; break }
+          if (done) {
+            reading = false
+            sseBuffer += decoder.decode()
+            break
+          }
 
-          const chunk = decoder.decode(value, { stream: true })
-          // Each SSE chunk may contain multiple "data: {...}" lines
-          const lines = chunk.split('\n').filter((l) => l.startsWith('data: '))
+          sseBuffer += decoder.decode(value, { stream: true })
+          const lines = sseBuffer.split(/\r?\n/)
+          sseBuffer = lines.pop() ?? ''
 
           for (const line of lines) {
-            const data = line.slice(6).trim()
-            if (data === '[DONE]') {
-              if (!sentAnyToken) {
-                const fallback =
-                  "Sorry — my answer didn’t come through. Could you try asking again?"
-                controller.enqueue(encoder.encode(fallback))
-              }
-              const latency = Date.now() - startedAt
-
-              console.log("AI SUMMARY", {
-                model: modelUsed,
-                latency_ms: latency,
-                prompt_tokens: usage?.prompt_tokens ?? null,
-                completion_tokens: usage?.completion_tokens ?? null,
-                reasoning_tokens: usage?.completion_tokens_details?.reasoning_tokens ?? null,
-                finish_reason: finishReason,
-                sent_visible_tokens: sentAnyToken,
-                fallback_used: !sentAnyToken,
-              })
-
-              controller.close()
-              return
-            }
-            try {
-              const parsed = JSON.parse(data)
-              
-              modelUsed = parsed.model ?? modelUsed
-              if (parsed.choices?.[0]?.finish_reason) {
-                finishReason = parsed.choices[0].finish_reason
-              }
-              if (parsed.usage) {
-                usage = parsed.usage
-              }
-
-              const choice = parsed.choices?.[0]
-              const delta = choice?.delta
-
-              const token =
-                delta?.content ??
-                delta?.reasoning ??   // ← NEW (critical)
-                choice?.message?.content ??
-                null
-              if (token) {
-                sentAnyToken = true
-                controller.enqueue(encoder.encode(token))
-              }
-            } catch {
-              // skip malformed SSE lines
-            }
+            if (processSseLine(line)) return
           }
         }
+
+        if (sseBuffer) {
+          if (processSseLine(sseBuffer)) return
+        }
       } catch (err) {
-        console.error("AI STREAM ERROR", err)
+        console.error('AI STREAM ERROR', err)
         controller.error(err)
       } finally {
         clearInterval(heartbeat)
         if (!sentAnyToken) {
           const fallback = "Sorry — I couldn't generate a reply this time. Please try again."
           controller.enqueue(encoder.encode(fallback))
-          console.warn("AI EMPTY COMPLETION")
+          console.warn('AI EMPTY COMPLETION')
         }
         reader.releaseLock()
       }
@@ -188,7 +206,7 @@ export async function POST(req: NextRequest) {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
       'X-Content-Type-Options': 'nosniff',
     },
   })
