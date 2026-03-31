@@ -18,6 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const keywords = [
     "Marcos Moore",
     "fawredd",
+    "Business Analyst",
     "Developer Portfolio",
     "JavaScript",
     "Next.js",
@@ -52,16 +53,16 @@ export async function generateMetadata(): Promise<Metadata> {
     ? `Projects featured: ${repoNames.join(", ")}.`
     : "" */
   const description =
-    "Marcos Moore (@fawredd) developer portfolio, showcasing projects, skills, and expertise in JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, and AI. " 
+    "Marcos Moore (@fawredd) portfolio, showcasing projects, skills, and expertise in JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, and AI. " 
     //projectList
 
   return {
     title:
-      "@fawredd Marcos Moore Developer Portfolio | JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, AI",
+      "@fawredd Marcos Moore Portfolio | Business Analyst | JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, AI",
     description,
     keywords,
     openGraph: {
-      title: "Marcos Moore @fawredd | Developer Portfolio",
+      title: "Marcos Moore @fawredd | Portfolio",
       description,
       url: "https://fawredd-portfolio.vercel.app",
       type: "website",
@@ -70,13 +71,13 @@ export async function generateMetadata(): Promise<Metadata> {
           url: "https://fawredd-portfolio.vercel.app/fawredd-github.jpeg",
           width: 1200,
           height: 630,
-          alt: "Marcos Moore @fawredd Developer Portfolio",
+          alt: "Marcos Moore @fawredd Portfolio",
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Marcos Moore @fawredd | Developer Portfolio",
+      title: "Marcos Moore @fawredd | Portfolio",
       description,
       images: ["https://fawredd-portfolio.vercel.app/fawredd-github.jpeg"],
       creator: "@fawredd",
