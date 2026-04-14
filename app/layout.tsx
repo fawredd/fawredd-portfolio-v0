@@ -15,6 +15,7 @@ export default function RootLayout({
     <html lang="en">
       <Head>
         <link rel="canonical" href="https://fawredd-portfolio.vercel.app" />
+        <meta name="google-site-verification" content="${process.env.GOOGLE_SITE_VERIFICATION}" />
       </Head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
