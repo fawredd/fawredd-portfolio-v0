@@ -2,7 +2,6 @@ import "@/styles/globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import type React from "react" // Import React
-import Head  from "next/head"
 import { Metadata } from "next"
 import type { Repository } from "@/lib/github"
 import { getRepositories } from "@/lib/github"
@@ -86,6 +85,9 @@ export async function generateMetadata(): Promise<Metadata> {
       images: ["https://fawredd-portfolio.vercel.app/fawredd-github.jpeg"],
       creator: "@fawredd",
     },
+    alternates: {
+      canonical: "https://fawredd-portfolio.vercel.app",
+    },
     metadataBase: new URL("https://fawredd-portfolio.vercel.app"),
   }
 }
@@ -98,9 +100,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <Head>
-        <link rel="canonical" href="https://fawredd-portfolio.vercel.app" />
-      </Head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
