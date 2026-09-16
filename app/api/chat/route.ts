@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
   const cvContext =
     process.env.GEMINI_API_TEXT ||
-    "Imagine you are me. I'm a software developer. You will answer short questions about my self."
+    "Imagine you are me. I'm a business analyst. You will answer short questions about my self."
 
   try {
     const result = streamText({

@@ -1,111 +1,122 @@
-import "@/styles/globals.css"
-import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import type React from "react" // Import React
-import { Metadata } from "next"
-import type { Repository } from "@/lib/github"
-import { getRepositories } from "@/lib/github"
+import '@/styles/globals.css'
+import { Inter } from 'next/font/google'
+import { ThemeProvider } from '@/components/theme-provider'
+import type React from 'react' // Import React
+import type { Metadata } from 'next'
 
+const inter = Inter({ subsets: ['latin'] })
+const siteUrl = 'https://fawredd-portfolio.vercel.app'
+const siteTitle = 'Marcos Moore | Business Analyst & Full-Stack Developer'
+const siteDescription =
+  'Explore the portfolio of Marcos Moore, a Business Analyst and full-stack developer based in Buenos Aires, specializing in JavaScript, React, Next.js, Node.js, Salesforce, and AI.'
 
-const inter = Inter({ subsets: ["latin"] })
-// Dynamically generate metadata based on fetched repositories.
-// I should fetch data from config file too, but did not implement it yet.
-export async function generateMetadata(): Promise<Metadata> {
-  const metaRepositories: Repository[] = await getRepositories()
-  // Generate keywords from repository names and topics
-  // const repoNames = metaRepositories.map(repo => repo.name)
-  const repoTopics = metaRepositories.flatMap(repo => repo.topics || [])
-  const keywords = [
-    "Marcos Moore",
-    "fawredd",
-    "Business Analyst",
-    "Developer Portfolio",
-    "JavaScript",
-    "Next.js",
-    "React",
-    "Node.js",
-    "Express.js",
-    "Salesforce",
-    "Apex",
-    "AI",
-    "bmpn",
-    "workflow",
-    "chatbot",
-    "portfolio",
-    "bussiness",
-    "team work",
-    "web development",
-    "full stack",
-    "front end",
-    "back end",
-    "web apps",
-    "mobile apps",
-    "open source",
-    "github",
-    ...repoTopics,
-  ]
-    .map(k => k.toLowerCase())
-    .filter((v, i, a) => a.indexOf(v) === i) // unique
-    .join(", ")
-
-  // Generate a longer description with project names
-  /* const projectList = repoNames.length
-    ? `Projects featured: ${repoNames.join(", ")}.`
-    : "" */
-  const description =
-    "Marcos Moore (@fawredd) portfolio, showcasing projects, skills, and expertise in JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, and AI. " 
-    //projectList
-
-  return {
-		verification: {
-			google:process.env.GOOGLE_SITE_VERIFICATION,
-		},
-    title:
-      "@fawredd Marcos Moore Portfolio | Business Analyst | JavaScript, Next.js, React, Node.js, Express.js, Salesforce, Apex, AI",
-    description,
-    keywords,
-    openGraph: {
-      title: "Marcos Moore @fawredd | Portfolio",
-      description,
-      url: "https://fawredd-portfolio.vercel.app",
-      type: "website",
-      images: [
-        {
-          url: "https://fawredd-portfolio.vercel.app/fawredd-github.jpeg",
-          width: 1200,
-          height: 630,
-          alt: "Marcos Moore @fawredd Portfolio",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: "Marcos Moore @fawredd | Portfolio",
-      description,
-      images: ["https://fawredd-portfolio.vercel.app/fawredd-github.jpeg"],
-      creator: "@fawredd",
-    },
-    alternates: {
-      canonical: "https://fawredd-portfolio.vercel.app",
-    },
-    metadataBase: new URL("https://fawredd-portfolio.vercel.app"),
-  }
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  keywords: [
+    'Marcos Moore',
+    'fawredd',
+    'Business Analyst',
+    'full-stack developer',
+    'JavaScript',
+    'React',
+    'Next.js',
+    'Node.js',
+    'Salesforce',
+    'AI',
+  ],
+  authors: [{ name: 'Marcos Moore', url: siteUrl }],
+  creator: 'Marcos Moore',
+  publisher: 'Marcos Moore',
+  alternates: { canonical: '/' },
+  robots: { index: true, follow: true },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+  },
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    url: siteUrl,
+    siteName: 'Marcos Moore Portfolio',
+    locale: 'en_US',
+    type: 'website',
+    images: [
+      {
+        url: '/img/fawredd-github.jpeg',
+        width: 1200,
+        height: 630,
+        alt: 'Marcos Moore portfolio',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: siteTitle,
+    description: siteDescription,
+    images: ['/img/fawredd-github.jpeg'],
+    creator: '@fawredd',
+  },
 }
 
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Person',
+      '@id': `${siteUrl}/#person`,
+      name: 'Marcos Moore',
+      alternateName: 'fawredd',
+      jobTitle: 'Business Analyst and Full-Stack Developer',
+      url: siteUrl,
+      image: `${siteUrl}/img/fawredd-github.jpeg`,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Buenos Aires',
+        addressCountry: 'AR',
+      },
+      sameAs: [
+        'https://github.com/fawredd',
+        'https://www.linkedin.com/in/mooremarcos',
+        'https://twitter.com/fawredd',
+      ],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      url: siteUrl,
+      name: 'Marcos Moore Portfolio',
+      description: siteDescription,
+      publisher: { '@id': `${siteUrl}/#person` },
+    },
+    {
+      '@type': 'ProfilePage',
+      '@id': `${siteUrl}/#profilepage`,
+      url: siteUrl,
+      name: siteTitle,
+      isPartOf: { '@id': `${siteUrl}/#website` },
+      mainEntity: { '@id': `${siteUrl}/#person` },
+    },
+  ],
+}
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           {children}
         </ThemeProvider>
       </body>
     </html>
   )
 }
-
